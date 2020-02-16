@@ -1,11 +1,6 @@
-"""
-Connects to the Strava API to plot rides
-"""
-
 import json
 import os
 import polyline
-import logging
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -17,7 +12,6 @@ from constants import RIDES_JSON_PATH, MARGIN, IDS_TO_SKIP, CLUSTERED, FIRST_CLU
 from strava_connection import save_rides_to_json
 from group_overlapping import group_overlapping
 
-logger = logging.getLogger(__name__)
 
 
 def get_bounding_box(coordinates):
