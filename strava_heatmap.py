@@ -2,7 +2,6 @@
 Connects to the Strava API to plot rides
 """
 
-import requests
 import json
 import os
 import polyline
@@ -13,74 +12,12 @@ import matplotlib.gridspec as gridspec
 
 from mpl_toolkits.basemap import Basemap
 from math import floor
-from dotenv import load_dotenv
 
+from constants import RIDES_JSON_PATH, MARGIN, IDS_TO_SKIP, CLUSTERED, FIRST_CLUSTER_ONLY
+from strava_connection import save_rides_to_json
 from group_overlapping import group_overlapping
 
 logger = logging.getLogger(__name__)
-load_dotenv()
-
-MARGIN = 0.2
-RIDES_JSON_PATH = os.path.join('strava-heatmap', 'all_rides.json')
-IDS_TO_SKIP = ['676955219']
-
-
-def connect_to_strava_api():
-    """
-    To obtain 'code':
-    - Go to this URL in a browser: https://www.strava.com/oauth/authorize?client_id=36057&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=activity:read
-    - Authorize the app
-    - From the URL you are redirected to, copy the 'code' part 
-    """
-
-    CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-    AUTH_CODE = os.getenv("AUTH_CODE")
-    CLIENT_ID = os.getenv("CLIENT_ID")
-
-    data = {
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
-        "code": AUTH_CODE,
-        "grant_type": "authorization_code"
-    }
-
-    response = requests.post("https://www.strava.com/oauth/token", data=data)
-
-    logger.debug(response.json())
-
-    return response.json()['access_token']
-
-
-def get_rides():
-
-    TOKEN = connect_to_strava_api()
-
-    url = "https://www.strava.com/api/v3/athletes/8952599/activities"
-    headers = {"Authorization": f"Bearer {TOKEN}"}
-
-    page = 1
-    all_rides = []
-
-    while True:
-        data = {
-            "per_page": 100,
-            "page": page
-        }
-        
-        response = requests.get(url, headers=headers, data=data)
-        logger.debug(response.json())
-        rides_on_page = response.json()
-
-        if rides_on_page == []:
-            break
-
-        all_rides += response.json()
-        page += 1
-    
-    all_rides = [ride for ride in all_rides if type(ride) is not str and ride['type']=="Ride"]
-
-    with open(RIDES_JSON_PATH, 'w') as outfile:
-        json.dump(all_rides, outfile, indent=4)
 
 
 def get_bounding_box(coordinates):
@@ -88,8 +25,8 @@ def get_bounding_box(coordinates):
     Given a list of coordinates, provides a bounding box that contains all these coordinates
     """
 
-    longitudes = [coordinate[0] for coordinate in coordinates]
-    latitudes = [coordinate[1] for coordinate in coordinates]
+    longitudes = [coordinate[1] for coordinate in coordinates]
+    latitudes = [coordinate[0] for coordinate in coordinates]
 
     bounding_box = {}
 
@@ -101,8 +38,15 @@ def get_bounding_box(coordinates):
     return bounding_box
 
 
-def parse_rides(rides):
-    routes = []
+def parse_rides():
+    """
+    Parses the all_rides.json to a list, containing a dictionary with a bounding box and a list of coordinates per ride
+    """
+
+    with open(RIDES_JSON_PATH, 'r') as infile:
+        rides = json.load(infile)
+
+    rides_parsed = []
 
     for ride in rides:
         if ride['upload_id_str'] in IDS_TO_SKIP:
@@ -112,7 +56,7 @@ def parse_rides(rides):
 
         bounding_box = get_bounding_box(coordinates)
 
-        routes.append({
+        rides_parsed.append({
             "bottom": bounding_box["min_lon"],
             "left": bounding_box["min_lat"],
             "width": bounding_box["width"],
@@ -120,10 +64,21 @@ def parse_rides(rides):
             "coordinates": coordinates
         })
 
-    return routes
+    return rides_parsed
 
 
-def get_route_group_bounding_boxes(route_groups):
+def cluster_rides(rides):
+    if CLUSTERED:
+        ride_clusters = group_overlapping(rides)
+        if FIRST_CLUSTER_ONLY:
+            ride_clusters = [ride_clusters[0]]
+    else:
+        ride_clusters = [rides]
+    
+    return ride_clusters
+
+
+def get_ride_cluster_bounding_boxes(route_groups):
     
     widths = []
     route_group_bounding_boxes =[]
@@ -139,39 +94,38 @@ def get_route_group_bounding_boxes(route_groups):
     return widths, route_group_bounding_boxes
 
 
-def plot_routes(route_groups):
+def plot_rides(ride_clusters):
     nof_rows = 1
-    nof_columns = len(route_groups)
+    nof_columns = len(ride_clusters)
     
-    widths, route_group_bounding_boxes = get_route_group_bounding_boxes(route_groups)
+    widths, ride_cluster_bounding_boxes = get_ride_cluster_bounding_boxes(ride_clusters)
 
     gs = gridspec.GridSpec(nof_rows, nof_columns, width_ratios=widths)
 
-    for i, route_group in enumerate(route_groups):
-        route_group_bounding_box = route_group_bounding_boxes[i]
+    for i, ride_cluster in enumerate(ride_clusters):
+        ride_cluster_bounding_box = ride_cluster_bounding_boxes[i]
 
         ax = plt.subplot(gs[i])
 
         map_ax = Basemap(
-            llcrnrlon=route_group_bounding_box["min_lat"],  # Left
-            llcrnrlat=route_group_bounding_box["min_lon"],  # Down
-            urcrnrlon=route_group_bounding_box["min_lat"] + route_group_bounding_box["width"],  # Right
-            urcrnrlat=route_group_bounding_box["min_lon"] + route_group_bounding_box["height"],  # Up
+            llcrnrlon=ride_cluster_bounding_box["min_lon"],  # Left
+            llcrnrlat=ride_cluster_bounding_box["min_lat"],  # Down
+            urcrnrlon=ride_cluster_bounding_box["min_lon"] + ride_cluster_bounding_box["width"],  # Right
+            urcrnrlat=ride_cluster_bounding_box["min_lat"] + ride_cluster_bounding_box["height"],  # Up
             epsg=23095,
-            ax = ax,
+            ax = ax
         )
 
         map_ax.arcgisimage(
             service="World_Imagery",
-            xpixels=min(600*widths[i], 2000),
-            verbose= True
+            xpixels=min(600*widths[i], 2000)
         )
 
-        for route in route_group:
-            route_longitudes = [coordinate[0] for coordinate in route["coordinates"]]
-            route_latitudes = [coordinate[1] for coordinate in route["coordinates"]]
+        for ride in ride_cluster:
+            ride_longitudes = [coordinate[1] for coordinate in ride["coordinates"]]
+            ride_latitudes = [coordinate[0] for coordinate in ride["coordinates"]]
 
-            x, y = map_ax(route_latitudes, route_longitudes)
+            x, y = map_ax(ride_longitudes, ride_latitudes)
             map_ax.plot(x, y, 'r-', alpha=1)
 
     plt.subplots_adjust(left=0.03, bottom=0.05, right=0.97, top=0.95, wspace=0.1, hspace=0.1)
@@ -179,22 +133,10 @@ def plot_routes(route_groups):
 
 
 if __name__ == "__main__":
-    CLUSTERED = True
-    FIRST_CLUSTER_ONLY = False
-
     if not os.path.isfile(RIDES_JSON_PATH):
-        get_rides()
+        save_rides_to_json()
+       
+    rides = parse_rides()
+    ride_clusters = cluster_rides(rides)
     
-    with open(RIDES_JSON_PATH, 'r') as infile:
-        rides = json.load(infile)
-    
-    routes = parse_rides(rides)
-
-    if CLUSTERED:
-        route_groups = group_overlapping(routes)
-        if FIRST_CLUSTER_ONLY:
-            route_groups = [route_groups[0]]
-    else:
-        route_groups = [routes]
-    
-    plot_routes(route_groups)
+    plot_rides(ride_clusters)

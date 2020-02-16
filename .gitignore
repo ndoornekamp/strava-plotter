@@ -1,0 +1,4 @@
+*.env
+all_rides.json
+images/
+__pycache__/
