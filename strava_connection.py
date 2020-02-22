@@ -6,6 +6,7 @@ import json
 from dotenv import load_dotenv
 
 from constants import RIDES_JSON_PATH
+from settings import ACTIVITY_TYPES
 
 load_dotenv()
 
@@ -56,6 +57,7 @@ def save_rides_to_json(TOKEN=None):
     """
     Get all activities from Strava, save them as a local JSON
     """
+    print("Saving rides to JSON")
 
     if not TOKEN:
         TOKEN = get_strava_access_token()
@@ -84,7 +86,7 @@ def save_rides_to_json(TOKEN=None):
         all_rides += response.json()
         page += 1
     
-    all_rides = [ride for ride in all_rides if type(ride) is not str and ride['type']=="Ride"]
+    all_rides = [ride for ride in all_rides if type(ride) is not str and ride['type'] in ACTIVITY_TYPES]
 
     with open(RIDES_JSON_PATH, 'w') as outfile:
         json.dump(all_rides, outfile, indent=4)

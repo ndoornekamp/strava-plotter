@@ -8,10 +8,10 @@ import matplotlib.gridspec as gridspec
 from mpl_toolkits.basemap import Basemap
 from math import floor
 
-from constants import RIDES_JSON_PATH, MARGIN, IDS_TO_SKIP, CLUSTERED, FIRST_CLUSTER_ONLY
+from constants import RIDES_JSON_PATH
+from settings import MARGIN, IDS_TO_SKIP, CLUSTERED, FIRST_CLUSTER_ONLY
 from strava_connection import save_rides_to_json
 from group_overlapping import group_overlapping
-
 
 
 def get_bounding_box(coordinates):
@@ -25,9 +25,9 @@ def get_bounding_box(coordinates):
     bounding_box = {}
 
     bounding_box["min_lon"] = min(longitudes) - MARGIN
-    bounding_box["height"] = max(longitudes) - bounding_box["min_lon"] + MARGIN
+    bounding_box["width"] = max(longitudes) - min(longitudes) + 2*MARGIN
     bounding_box["min_lat"] = min(latitudes) - MARGIN
-    bounding_box["width"] = max(latitudes) - bounding_box["min_lat"] + MARGIN
+    bounding_box["height"] = max(latitudes) - min(latitudes) + 2*MARGIN
 
     return bounding_box
 
@@ -51,8 +51,8 @@ def parse_rides():
         bounding_box = get_bounding_box(coordinates)
 
         rides_parsed.append({
-            "bottom": bounding_box["min_lon"],
-            "left": bounding_box["min_lat"],
+            "bottom": bounding_box["min_lat"],
+            "left": bounding_box["min_lon"],
             "width": bounding_box["width"],
             "height": bounding_box["height"],
             "coordinates": coordinates
@@ -74,7 +74,6 @@ def cluster_rides(rides):
 
 def get_ride_cluster_bounding_boxes(route_groups):
     
-    widths = []
     route_group_bounding_boxes =[]
     for route_group in route_groups:
         route_group_coordinates = []
@@ -83,18 +82,17 @@ def get_ride_cluster_bounding_boxes(route_groups):
         
         route_group_bounding_box = get_bounding_box(route_group_coordinates)
         route_group_bounding_boxes.append(route_group_bounding_box)
-        widths.append(route_group_bounding_box["width"])
     
-    return widths, route_group_bounding_boxes
+    return route_group_bounding_boxes
 
 
 def plot_rides(ride_clusters):
     nof_rows = 1
     nof_columns = len(ride_clusters)
     
-    widths, ride_cluster_bounding_boxes = get_ride_cluster_bounding_boxes(ride_clusters)
+    ride_cluster_bounding_boxes = get_ride_cluster_bounding_boxes(ride_clusters)
 
-    gs = gridspec.GridSpec(nof_rows, nof_columns, width_ratios=widths)
+    gs = gridspec.GridSpec(nof_rows, nof_columns, width_ratios=[bounding_box['width'] for bounding_box in ride_cluster_bounding_boxes])
 
     for i, ride_cluster in enumerate(ride_clusters):
         ride_cluster_bounding_box = ride_cluster_bounding_boxes[i]
@@ -112,7 +110,7 @@ def plot_rides(ride_clusters):
 
         map_ax.arcgisimage(
             service="World_Imagery",
-            xpixels=min(600*widths[i], 2000)
+            xpixels=min(2000, 600*ride_cluster_bounding_box['width'])
         )
 
         for ride in ride_cluster:
