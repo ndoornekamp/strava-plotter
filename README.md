@@ -1,7 +1,7 @@
 ## A script for plotting Strava data
 
 ### Getting started
-0. Note: the guide below was written for Windows. For other operating systems, another basemap wheel will be required in step 1 of 'Getting started'. Step 2 assumes you're using an [Anaconda](https://www.anaconda.com/distribution/) environment to handle dependencies.
+Note: the guide below was written for Windows. For other operating systems, another basemap wheel will be required in step 1 of 'Getting started'. Step 2 assumes you're using an [Anaconda](https://www.anaconda.com/distribution/) environment to handle dependencies.
 1. Download the basemap-1.2.1-cp36-cp36m-win_amd64.whl file from https://www.lfd.uci.edu/~gohlke/pythonlibs/. (If you're running a 32-bit operating system, take basemap‑1.2.1‑cp36‑cp36m‑win32.whl instead, and update environment.yml for that)
 2. Run "conda env create --name strava-plotter-env -f environment.yml"
 3. Follow section B of [Strava's instructions for creating an app](https://developers.strava.com/docs/getting-started/). 

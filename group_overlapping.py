@@ -45,18 +45,18 @@ def group_common_elements(input_list):
     return output_list
 
 
-def group_overlapping(routes):
+def group_overlapping(rides):
     """
-    Groups any overlapping routes so that all routes that overlap are
+    Groups any overlapping rides so that all rides that overlap are
     together in one list    
     """
 
     bounding_boxes = [{
-        "x_min": route["left"],
-        "x_max": route["left"] + route["width"],
-        "y_min": route["bottom"],
-        "y_max": route["bottom"] + route["height"]
-    } for route in routes]
+        "x_min": ride["left"],
+        "x_max": ride["left"] + ride["width"],
+        "y_min": ride["bottom"],
+        "y_max": ride["bottom"] + ride["height"]
+    } for ride in rides]
 
     bounding_box_overlaps = []
     for i, bounding_box_1 in enumerate(bounding_boxes):
@@ -68,8 +68,8 @@ def group_overlapping(routes):
         # bounding_box_overlaps is a list of lists, where the list at index i is a list of the indices of the bounding boxes that bounding box i overlaps with
         bounding_box_overlaps.append(i_overlaps_with)
     
-    groups_of_overlapping_routes = group_common_elements(bounding_box_overlaps)
+    groups_of_overlapping_rides = group_common_elements(bounding_box_overlaps)
 
-    route_groups = [[routes[i] for i in group_of_overlapping_routes] for group_of_overlapping_routes in groups_of_overlapping_routes]
+    ride_groups = [[rides[i] for i in group_of_overlapping_rides] for group_of_overlapping_rides in groups_of_overlapping_rides]
 
-    return route_groups
+    return ride_groups

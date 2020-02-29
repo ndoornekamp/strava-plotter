@@ -16,7 +16,7 @@ from group_overlapping import group_overlapping
 
 def get_bounding_box(coordinates):
     """
-    Given a list of coordinates, provides a bounding box that contains all these coordinates
+    Given a list of coordinates, returns a bounding box that contains all these coordinates
     """
 
     longitudes = [coordinate[1] for coordinate in coordinates]
@@ -34,7 +34,8 @@ def get_bounding_box(coordinates):
 
 def parse_rides():
     """
-    Parses the all_rides.json to a list, containing a dictionary with a bounding box and a list of coordinates per ride
+    Parses the all_rides.json to a list, containing a dictionary with a bounding box 
+    and a list of coordinates per ride
     """
 
     with open(RIDES_JSON_PATH, 'r') as infile:
@@ -72,18 +73,19 @@ def cluster_rides(rides):
     return ride_clusters
 
 
-def get_ride_cluster_bounding_boxes(route_groups):
+def get_ride_cluster_bounding_boxes(ride_groups):
     
-    route_group_bounding_boxes =[]
-    for route_group in route_groups:
-        route_group_coordinates = []
-        for route in route_group:
-            route_group_coordinates += [coordinate for coordinate in route["coordinates"]]
+    ride_group_bounding_boxes =[]
+    for ride_group in ride_groups:
+        ride_group_coordinates = []
+
+        for ride in ride_group:
+            ride_group_coordinates += [coordinate for coordinate in ride["coordinates"]]
         
-        route_group_bounding_box = get_bounding_box(route_group_coordinates)
-        route_group_bounding_boxes.append(route_group_bounding_box)
+        ride_group_bounding_box = get_bounding_box(ride_group_coordinates)
+        ride_group_bounding_boxes.append(ride_group_bounding_box)
     
-    return route_group_bounding_boxes
+    return ride_group_bounding_boxes
 
 
 def plot_rides(ride_clusters):
@@ -92,7 +94,11 @@ def plot_rides(ride_clusters):
     
     ride_cluster_bounding_boxes = get_ride_cluster_bounding_boxes(ride_clusters)
 
-    gs = gridspec.GridSpec(nof_rows, nof_columns, width_ratios=[bounding_box['width'] for bounding_box in ride_cluster_bounding_boxes])
+    gs = gridspec.GridSpec(
+        nof_rows,
+        nof_columns,
+        width_ratios=[bounding_box['width'] for bounding_box in ride_cluster_bounding_boxes]
+    )
 
     for i, ride_cluster in enumerate(ride_clusters):
         ride_cluster_bounding_box = ride_cluster_bounding_boxes[i]
