@@ -44,10 +44,13 @@ def parse_rides():
     rides_parsed = []
 
     for ride in rides:
-        if ride['upload_id_str'] in IDS_TO_SKIP:
+        if ride['id'] in IDS_TO_SKIP:
             continue
 
-        coordinates = polyline.decode(ride['map']['summary_polyline'])
+        if ride['map']['summary_polyline']:  # Not all rides have a polyline
+            coordinates = polyline.decode(ride['map']['summary_polyline'])
+        else:
+            continue
 
         bounding_box = get_bounding_box(coordinates)
 
