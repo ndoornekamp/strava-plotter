@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 from settings import ACTIVITY_TYPES
 
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
+load_dotenv('.env')
 
 
 def authorise_app():
