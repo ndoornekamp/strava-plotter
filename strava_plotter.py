@@ -8,9 +8,9 @@ import matplotlib.gridspec as gridspec
 from mpl_toolkits.basemap import Basemap
 from math import floor
 
-from constants import RIDES_JSON_PATH
+from constants import RESULTS_FOLDER
 from settings import MARGIN, IDS_TO_SKIP, CLUSTERED, FIRST_CLUSTER_ONLY
-from strava_connection import save_rides_to_json
+from strava_connection import get_rides_from_strava
 from group_overlapping import group_overlapping
 
 
@@ -32,14 +32,11 @@ def get_bounding_box(coordinates):
     return bounding_box
 
 
-def parse_rides():
+def parse_rides(rides):
     """
-    Parses the all_rides.json to a list, containing a dictionary with a bounding box 
+    Parses the rides obtained from Strava to a list, containing a dictionary with a bounding box 
     and a list of coordinates per ride
     """
-
-    with open(RIDES_JSON_PATH, 'r') as infile:
-        rides = json.load(infile)
 
     rides_parsed = []
 
@@ -130,14 +127,22 @@ def plot_rides(ride_clusters):
             map_ax.plot(x, y, 'r-', alpha=1)
 
     plt.subplots_adjust(left=0.03, bottom=0.05, right=0.97, top=0.95, wspace=0.1, hspace=0.1)
-    plt.show()
+    
+    output_path = os.path.join(RESULTS_FOLDER, 'output.png')
+
+    if not os.path.isdir(RESULTS_FOLDER):
+        os.mkdir(RESULTS_FOLDER)
+
+    plt.savefig(output_path, dpi=1200)
+
+
+def strava_plotter(authorisation_code):
+    os.chdir(os.path.dirname(__file__))  # Set working directory to script directory
+    rides_raw = get_rides_from_strava(authorisation_code=authorisation_code)
+    rides = parse_rides(rides_raw)
+    ride_clusters = cluster_rides(rides)
+    plot_rides(ride_clusters)
 
 
 if __name__ == "__main__":
-    if not os.path.isfile(RIDES_JSON_PATH):
-        save_rides_to_json()
-       
-    rides = parse_rides()
-    ride_clusters = cluster_rides(rides)
-    
-    plot_rides(ride_clusters)
+    strava_plotter(authorisation_code=None)

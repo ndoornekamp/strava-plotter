@@ -5,10 +5,9 @@ import json
 
 from dotenv import load_dotenv
 
-from constants import RIDES_JSON_PATH
 from settings import ACTIVITY_TYPES
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 
 
 def authorise_app():
@@ -18,6 +17,7 @@ def authorise_app():
     - Authorise the app in the browser
     - From the URL you are redirected to, copy the 'code' part. This is your authentication code.
     """
+
     CLIENT_ID = os.getenv("CLIENT_ID")
 
     authorization_page_url = f"https://www.strava.com/oauth/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=activity:read"
@@ -26,16 +26,18 @@ def authorise_app():
     print("Authorise the app in your browser and copy the 'code' parameter from the URL you are redirected to, then press Enter")
     authorisation_code = input("code:")
 
-    token = get_strava_access_token(authorisation_code)
-    save_rides_to_json(TOKEN=token)
+    return authorisation_code
 
 
 def get_strava_access_token(AUTHORISATION_CODE=None):
     CLIENT_ID = os.getenv("CLIENT_ID")
     CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 
+    assert CLIENT_ID is not None
+    assert CLIENT_SECRET is not None
+
     if not AUTHORISATION_CODE:
-        AUTHORISATION_CODE = os.getenv("AUTH_CODE")
+        AUTHORISATION_CODE = authorise_app()
 
     data = {
         "client_id": CLIENT_ID,
@@ -46,26 +48,18 @@ def get_strava_access_token(AUTHORISATION_CODE=None):
 
     response = requests.post("https://www.strava.com/oauth/token", data=data)
 
-    if "access_token" not in response.json():
-        print("Authorization required")
-        authorise_app()
-    else:
-        return response.json()['access_token']
+    return response.json()['access_token'], response.json()['athlete']['id']
 
 
-def save_rides_to_json(TOKEN=None):
+def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
     """
     Get all activities from Strava, save them as a local JSON
     """
-    print("Saving rides to JSON")
 
     if not TOKEN:
-        TOKEN = get_strava_access_token()
-        return
+        TOKEN, ATHLETE_ID = get_strava_access_token(AUTHORISATION_CODE=authorisation_code)
 
-    ATHLETHE_ID = os.getenv("ATHLETE_ID")
-
-    url = f"https://www.strava.com/api/v3/athletes/{ATHLETHE_ID}/activities"
+    url = f"https://www.strava.com/api/v3/athletes/{ATHLETE_ID}/activities"
     headers = {"Authorization": f"Bearer {TOKEN}"}
 
     page = 1
@@ -88,10 +82,4 @@ def save_rides_to_json(TOKEN=None):
     
     all_rides = [ride for ride in all_rides if type(ride) is not str and ride['type'] in ACTIVITY_TYPES]
 
-    with open(RIDES_JSON_PATH, 'w') as outfile:
-        json.dump(all_rides, outfile, indent=4)
-        print(f"Saved all rides to {RIDES_JSON_PATH}")
-
-
-if __name__ == "__main__":
-    save_rides_to_json()
+    return all_rides
