@@ -80,6 +80,6 @@ def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
         all_rides += response.json()
         page += 1
     
-    all_rides = [ride for ride in all_rides if type(ride) is not str and ride['type'] in ACTIVITY_TYPES]
+    all_rides = [ride for ride in all_rides if type(ride) is not str]
 
     return all_rides
