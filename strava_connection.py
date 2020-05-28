@@ -5,8 +5,6 @@ import json
 
 from dotenv import load_dotenv
 
-from settings import ACTIVITY_TYPES
-
 load_dotenv('.env')
 
 

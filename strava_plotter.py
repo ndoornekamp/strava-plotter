@@ -11,12 +11,11 @@ from math import floor
 from io import BytesIO
 
 from constants import RESULTS_FOLDER
-from settings import MARGIN, IDS_TO_SKIP, CLUSTERED, FIRST_CLUSTER_ONLY, SUBPLOTS_IN_SEPARATE_FILES, OUTPUT_FORMAT
 from strava_connection import get_rides_from_strava
 from group_overlapping import group_overlapping
 
 
-def get_bounding_box(coordinates):
+def get_bounding_box(coordinates, margin):
     """
     Given a list of coordinates, returns a bounding box that contains all these coordinates
     """
@@ -26,15 +25,15 @@ def get_bounding_box(coordinates):
 
     bounding_box = {}
 
-    bounding_box["min_lon"] = min(longitudes) - MARGIN
-    bounding_box["width"] = max(longitudes) - min(longitudes) + 2*MARGIN
-    bounding_box["min_lat"] = min(latitudes) - MARGIN
-    bounding_box["height"] = max(latitudes) - min(latitudes) + 2*MARGIN
+    bounding_box["min_lon"] = min(longitudes) - margin
+    bounding_box["width"] = max(longitudes) - min(longitudes) + 2*margin
+    bounding_box["min_lat"] = min(latitudes) - margin
+    bounding_box["height"] = max(latitudes) - min(latitudes) + 2*margin
 
     return bounding_box
 
 
-def parse_rides(rides):
+def parse_rides(rides, params):
     """
     Parses the rides obtained from Strava to a list, containing a dictionary with a bounding box 
     and a list of coordinates per ride
@@ -43,7 +42,7 @@ def parse_rides(rides):
     rides_parsed = []
 
     for ride in rides:
-        if str(ride['id']) in IDS_TO_SKIP:
+        if str(ride['id']) in params['ids_to_skip']:
             continue
 
         if ride['map']['summary_polyline']:  # Not all rides have a polyline
@@ -51,7 +50,7 @@ def parse_rides(rides):
         else:
             continue
 
-        bounding_box = get_bounding_box(coordinates)
+        bounding_box = get_bounding_box(coordinates, params['margin'])
 
         rides_parsed.append({
             "bottom": bounding_box["min_lat"],
@@ -64,10 +63,10 @@ def parse_rides(rides):
     return rides_parsed
 
 
-def cluster_rides(rides):
-    if CLUSTERED:
+def cluster_rides(rides, params):
+    if params['clustered']:
         ride_clusters = group_overlapping(rides)
-        if FIRST_CLUSTER_ONLY:
+        if params['first_cluster_only']:
             ride_clusters = [ride_clusters[0]]
     else:
         ride_clusters = [rides]
@@ -75,7 +74,7 @@ def cluster_rides(rides):
     return ride_clusters
 
 
-def get_ride_cluster_bounding_boxes(ride_groups):
+def get_ride_cluster_bounding_boxes(ride_groups, params):
     
     ride_group_bounding_boxes =[]
     for ride_group in ride_groups:
@@ -84,15 +83,15 @@ def get_ride_cluster_bounding_boxes(ride_groups):
         for ride in ride_group:
             ride_group_coordinates += [coordinate for coordinate in ride["coordinates"]]
         
-        ride_group_bounding_box = get_bounding_box(ride_group_coordinates)
+        ride_group_bounding_box = get_bounding_box(ride_group_coordinates, params['margin'])
         ride_group_bounding_boxes.append(ride_group_bounding_box)
     
     return ride_group_bounding_boxes
 
 
-def plot_rides(ride_clusters):
+def plot_rides(ride_clusters, params):
     
-    ride_cluster_bounding_boxes = get_ride_cluster_bounding_boxes(ride_clusters)
+    ride_cluster_bounding_boxes = get_ride_cluster_bounding_boxes(ride_clusters, params)
     widths = [bounding_box['width'] for bounding_box in ride_cluster_bounding_boxes]
     heights = [bounding_box['height'] for bounding_box in ride_cluster_bounding_boxes]
     
@@ -104,14 +103,14 @@ def plot_rides(ride_clusters):
     for i, ride_cluster in enumerate(ride_clusters):
         ride_cluster_bounding_box = ride_cluster_bounding_boxes[i]
 
-        if not SUBPLOTS_IN_SEPARATE_FILES:
+        if not params['subplots_in_separate_files']:
             ax = plt.subplot(gs[i])
             map_ax = plot_cluster(ax, ride_cluster_bounding_box, ride_cluster)
         else:
             ax = plt.subplot(gridspec.GridSpec(1, 1, width_ratios=[widths[i]])[0])
             map_ax = plot_cluster(ax, ride_cluster_bounding_box, ride_cluster)
 
-            if OUTPUT_FORMAT == 'bytes':
+            if params['output_format'] == 'bytes':
                 images_base64.append(plot_to_bytes(plt, width=widths[i], height=heights[i]))
             else:
                 output_path = os.path.join(RESULTS_FOLDER, f'output{i}.png')
@@ -121,16 +120,16 @@ def plot_rides(ride_clusters):
 
                 plt.savefig(output_path, dpi=600)        
 
-    if SUBPLOTS_IN_SEPARATE_FILES:
-        if OUTPUT_FORMAT == 'bytes':
+    if params['subplots_in_separate_files']:
+        if params['output_format'] == 'bytes':
             return images_base64
         else:
-            raise NotImplementedError(f"Saving subplots in separate files with output format {OUTPUT_FORMAT} is not yet implemented")
+            raise NotImplementedError(f"Saving subplots in separate files with output format {params['output_format']} is not yet implemented")
     else:
         plt.subplots_adjust(left=0.03, bottom=0.05, right=0.97, top=0.95, wspace=0.1, hspace=0.1)
-        if OUTPUT_FORMAT == 'bytes':
+        if params['output_format'] == 'bytes':
             return [plot_to_bytes(plt)]
-        elif OUTPUT_FORMAT == "image":
+        elif params['output_format'] == "image":
             output_path = os.path.join(RESULTS_FOLDER, 'output.png')
 
             if not os.path.isdir(RESULTS_FOLDER):
@@ -138,7 +137,7 @@ def plot_rides(ride_clusters):
 
             plt.savefig(output_path, dpi=600)
         else:
-            raise NotImplementedError(f"Unknown {OUTPUT_FORMAT}: expected either 'bytes' or 'image'")
+            raise NotImplementedError(f"Unknown {params['output_format']}: expected either 'bytes' or 'image'")
 
 
 def plot_cluster(ax, ride_cluster_bounding_box, ride_cluster):
@@ -188,13 +187,17 @@ def plot_to_bytes(plt, width=None, height=None):
     return image_base64
 
 
-def strava_plotter(authorisation_code):
+def strava_plotter(authorisation_code, params):
+
+    if not params:
+        from settings import params
+
     os.chdir(os.path.dirname(__file__))  # Set working directory to script directory
     rides_raw = get_rides_from_strava(authorisation_code=authorisation_code)
-    rides = parse_rides(rides_raw)
-    ride_clusters = cluster_rides(rides)
-    plot_rides(ride_clusters)
+    rides = parse_rides(rides_raw, params)
+    ride_clusters = cluster_rides(rides, params)
+    plot_rides(ride_clusters, params)
 
 
 if __name__ == "__main__":
-    strava_plotter(authorisation_code=None)
+    strava_plotter(authorisation_code=None, params=None)
