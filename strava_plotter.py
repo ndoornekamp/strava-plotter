@@ -45,6 +45,9 @@ def parse_rides(rides, params):
         if str(ride['id']) in params['ids_to_skip']:
             continue
 
+        if ride['type'] not in params['activity_types']:
+            continue
+
         if ride['map']['summary_polyline']:  # Not all rides have a polyline
             coordinates = polyline.decode(ride['map']['summary_polyline'])
         else:
@@ -105,10 +108,10 @@ def plot_rides(ride_clusters, params):
 
         if not params['subplots_in_separate_files']:
             ax = plt.subplot(gs[i])
-            map_ax = plot_cluster(ax, ride_cluster_bounding_box, ride_cluster)
+            map_ax = plot_cluster(ax, ride_cluster_bounding_box, ride_cluster, params)
         else:
             ax = plt.subplot(gridspec.GridSpec(1, 1, width_ratios=[widths[i]])[0])
-            map_ax = plot_cluster(ax, ride_cluster_bounding_box, ride_cluster)
+            map_ax = plot_cluster(ax, ride_cluster_bounding_box, ride_cluster, params)
 
             if params['output_format'] == 'bytes':
                 images_base64.append(plot_to_bytes(plt, width=widths[i], height=heights[i]))
@@ -140,7 +143,7 @@ def plot_rides(ride_clusters, params):
             raise NotImplementedError(f"Unknown {params['output_format']}: expected either 'bytes' or 'image'")
 
 
-def plot_cluster(ax, ride_cluster_bounding_box, ride_cluster):
+def plot_cluster(ax, ride_cluster_bounding_box, ride_cluster, params):
     """
     Given a list of rides and its bounding box, plots this cluster the matplotlib object <ax>,
     with satellite imagery as background 
@@ -165,7 +168,7 @@ def plot_cluster(ax, ride_cluster_bounding_box, ride_cluster):
         ride_latitudes = [coordinate[0] for coordinate in ride["coordinates"]]
 
         x, y = map_ax(ride_longitudes, ride_latitudes)
-        map_ax.plot(x, y, 'r-', alpha=0.5, linewidth=0.2)
+        map_ax.plot(x, y, 'r-', alpha=params['alpha'], linewidth=0.2)
     
     return map_ax
 

@@ -6,4 +6,5 @@ params = {
     "first_cluster_only": False,  # Include only the first cluster in your figure
     "output_format": 'image',  # ['bytes', 'image']
     "subplots_in_separate_files": False,
+    "alpha": 0.5
 }
