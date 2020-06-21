@@ -139,6 +139,7 @@ def plot_rides(ride_clusters, params):
                 os.mkdir(RESULTS_FOLDER)
 
             plt.savefig(output_path, dpi=600)
+            plt.show()
         else:
             raise NotImplementedError(f"Unknown {params['output_format']}: expected either 'bytes' or 'image'")
 

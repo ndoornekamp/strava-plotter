@@ -1,11 +1,11 @@
 ## A script for plotting Strava data
+See https://nickdoornekamp.pythonanywhere.com/.
 
 ### Getting started
-Note: the guide below was written for Windows. For other operating systems, another basemap wheel will be required in step 1 of 'Getting started'. Step 2 assumes you're using an [Anaconda](https://www.anaconda.com/distribution/) environment to handle dependencies.
-1. Download the basemap-1.2.1-cp36-cp36m-win_amd64.whl file from https://www.lfd.uci.edu/~gohlke/pythonlibs/. (If you're running a 32-bit operating system, take basemap‑1.2.1‑cp36‑cp36m‑win32.whl instead, and update environment.yml for that)
-2. Run "conda env create --name strava-plotter-env -f environment.yml"
-3. Follow section B of [Strava's instructions for creating an app](https://developers.strava.com/docs/getting-started/). 
-4. Rename '.env.example' to '.env' and fill the CLIENT_ID, CLIENT_SECRET you obtained in the previous steps, as well as your ATHLETE_ID.
+Note: the guide below was written for and tested on Linux. For running this on Windows, you'll need to download the the basemap-1.2.1-cp36-cp36m-win_amd64.whl file from https://www.lfd.uci.edu/~gohlke/pythonlibs/. (If you're running a 32-bit operating system, take basemap‑1.2.1‑cp36‑cp36m‑win32.whl instead, and update environment.yml for that)
+1. Run "conda env create --name strava-plotter-env -f environment.yml"
+2. Follow section B of [Strava's instructions for creating an app](https://developers.strava.com/docs/getting-started/). 
+3. Rename '.env.example' to '.env' and fill the CLIENT_ID, CLIENT_SECRET you obtained in the previous steps.
 
 ### Running the the script
 1. If desired, change the settings in settings.py

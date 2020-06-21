@@ -2,3 +2,4 @@
 all_rides.json
 media/
 __pycache__/
+.vscode/
