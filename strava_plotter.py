@@ -199,6 +199,8 @@ def strava_plotter(authorisation_code, params):
     rides_raw = get_rides_from_strava(authorisation_code=authorisation_code)
     rides = parse_rides(rides_raw, params)
     ride_clusters = cluster_rides(rides, params)
+
+    print(f"Plotting {len(rides)} rides in {len(ride_clusters)} clusters")
     plot_rides(ride_clusters, params)
 
 

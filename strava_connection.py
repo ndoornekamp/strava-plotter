@@ -80,4 +80,6 @@ def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
     
     all_rides = [ride for ride in all_rides if type(ride) is not str]
 
+    print(f"Obtained {len(all_rides)} for athlete {ATHLETE_ID}")
+
     return all_rides
