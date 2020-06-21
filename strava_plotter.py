@@ -159,6 +159,7 @@ def plot_cluster(ax, ride_cluster_bounding_box, ride_cluster, params):
     )
 
     map_ax.arcgisimage(
+        server="http://services.arcgisonline.com/ArcGIS",
         service="World_Imagery",
         xpixels=min(2000, 600*ride_cluster_bounding_box['width'])
     )
