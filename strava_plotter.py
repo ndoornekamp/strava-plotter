@@ -1,3 +1,6 @@
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 import json
 import os
 import polyline
@@ -104,6 +107,7 @@ def plot_rides(ride_clusters, params):
     images_base64 = []
 
     for i, ride_cluster in enumerate(ride_clusters):
+        print(f"Printing cluster {i+1}/{len(ride_clusters)}, containing {len(ride_cluster)} activities")
         ride_cluster_bounding_box = ride_cluster_bounding_boxes[i]
 
         if not params['subplots_in_separate_files']:

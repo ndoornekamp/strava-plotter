@@ -45,6 +45,7 @@ def get_strava_access_token(AUTHORISATION_CODE=None):
     }
 
     response = requests.post("https://www.strava.com/oauth/token", data=data)
+    print(response)
 
     return response.json()['access_token'], response.json()['athlete']['id']
 
