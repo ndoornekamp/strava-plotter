@@ -4,6 +4,7 @@ import webbrowser
 import json
 
 from dotenv import load_dotenv
+from urllib.error import HTTPError
 
 load_dotenv('.env')
 
@@ -71,6 +72,11 @@ def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
         }
         
         response = requests.get(url, headers=headers, data=data)
+        
+        if 'message' in response.json():
+            print(f"Error: {response.json()}")
+            raise HTTPError(url=url, code=429, msg=f"Error: {response.json()}", hdrs=headers, fp=None)
+    
         rides_on_page = response.json()
 
         if rides_on_page == []:
