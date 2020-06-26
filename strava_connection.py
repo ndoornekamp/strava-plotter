@@ -46,9 +46,13 @@ def get_strava_access_token(AUTHORISATION_CODE=None):
     }
 
     response = requests.post("https://www.strava.com/oauth/token", data=data)
-    print(response)
-
-    return response.json()['access_token'], response.json()['athlete']['id']
+    
+    if response.status_code == 200:
+        print(f"Successfully obtained the access token for {response.json()['athlete']['firstname']} {response.json()['athlete']['lastname']}")
+        return response.json()['access_token'], response.json()['athlete']['id']
+    else:
+        print(f"Error obtaining access token: {response.json()}")
+        raise HTTPError("https://www.strava.com/oauth/token", response.status_code, response.json(), None, None)
 
 
 def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
@@ -64,8 +68,8 @@ def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
 
     page = 1
     all_rides = []
-    while True:  # Loop through all pages
-        print(f'Saving page {page}')
+    for page in range(1, 100):  # Loop through all pages (> 10000 activities seems unlikely..)
+        print(f'Saving page {page} for athlete {ATHLETE_ID}')
         data = {
             "per_page": 100,
             "page": page
@@ -73,17 +77,16 @@ def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
         
         response = requests.get(url, headers=headers, data=data)
         
-        if 'message' in response.json():
-            print(f"Error: {response.json()}")
-            raise HTTPError(url=url, code=429, msg=f"Error: {response.json()}", hdrs=headers, fp=None)
+        if response.status_code != 200:
+            print(f"Error : {response.json()}")
+            raise HTTPError(url=url, code=response.status_code, msg=f"Error: {response.json()}", hdrs=headers, fp=None)
     
         rides_on_page = response.json()
 
-        if rides_on_page == []:
+        if rides_on_page == []:  # Break once we've requested all rides (i.e. we receive empty pages back)
             break
 
         all_rides += response.json()
-        page += 1
     
     all_rides = [ride for ride in all_rides if type(ride) is not str]
 
