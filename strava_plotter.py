@@ -159,7 +159,7 @@ def plot_cluster(ax, ride_cluster_bounding_box, ride_cluster, params):
         llcrnrlat=ride_cluster_bounding_box["min_lat"],  # Down
         urcrnrlon=ride_cluster_bounding_box["min_lon"] + ride_cluster_bounding_box["width"],  # Right
         urcrnrlat=ride_cluster_bounding_box["min_lat"] + ride_cluster_bounding_box["height"],  # Up
-        epsg=23095,
+        epsg=3857,
         ax = ax
     )
 
