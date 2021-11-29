@@ -53,9 +53,9 @@ def group_overlapping(rides):
 
     bounding_boxes = [{
         "x_min": ride["min_lon"],
-        "x_max": ride["min_lon"] + ride["width"],
+        "x_max": ride["max_lon"],
         "y_min": ride["min_lat"],
-        "y_max": ride["min_lat"] + ride["height"]
+        "y_max": ride["max_lat"]
     } for ride in rides]
 
     bounding_box_overlaps = []
