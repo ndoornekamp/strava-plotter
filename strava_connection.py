@@ -46,7 +46,7 @@ def get_strava_access_token(AUTHORISATION_CODE=None):
     }
 
     response = requests.post("https://www.strava.com/oauth/token", data=data)
-    
+
     if response.status_code == 200:
         print(f"Successfully obtained the access token for {response.json()['athlete']['firstname']} {response.json()['athlete']['lastname']}")
         return response.json()['access_token'], response.json()['athlete']['id']
@@ -74,20 +74,20 @@ def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
             "per_page": 100,
             "page": page
         }
-        
+
         response = requests.get(url, headers=headers, data=data)
-        
+
         if response.status_code != 200:
             print(f"Error : {response.json()}")
             raise HTTPError(url=url, code=response.status_code, msg=f"Error: {response.json()}", hdrs=headers, fp=None)
-    
+
         rides_on_page = response.json()
 
         if rides_on_page == []:  # Break once we've requested all rides (i.e. we receive empty pages back)
             break
 
         all_rides += response.json()
-    
+
     all_rides = [ride for ride in all_rides if type(ride) is not str]
 
     print(f"Obtained {len(all_rides)} rides for athlete {ATHLETE_ID}")

@@ -5,6 +5,7 @@ params = {
     "clustered": True,  # Put clusters of rides in separate subplots
     "first_cluster_only": False,  # Include only the first cluster in your figure
     "output_format": 'image',  # ['bytes', 'image']
-    "subplots_in_separate_files": False,
-    "alpha": 0.5
+    "subplots_in_separate_files": True,
+    "alpha": 0.5,
+    "zoom": 12,
 }

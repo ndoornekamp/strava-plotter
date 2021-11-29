@@ -48,14 +48,14 @@ def group_common_elements(input_list):
 def group_overlapping(rides):
     """
     Groups any overlapping rides so that all rides that overlap are
-    together in one list    
+    together in one list
     """
 
     bounding_boxes = [{
-        "x_min": ride["left"],
-        "x_max": ride["left"] + ride["width"],
-        "y_min": ride["bottom"],
-        "y_max": ride["bottom"] + ride["height"]
+        "x_min": ride["min_lon"],
+        "x_max": ride["min_lon"] + ride["width"],
+        "y_min": ride["min_lat"],
+        "y_max": ride["min_lat"] + ride["height"]
     } for ride in rides]
 
     bounding_box_overlaps = []
@@ -67,7 +67,7 @@ def group_overlapping(rides):
 
         # bounding_box_overlaps is a list of lists, where the list at index i is a list of the indices of the bounding boxes that bounding box i overlaps with
         bounding_box_overlaps.append(i_overlaps_with)
-    
+
     groups_of_overlapping_rides = group_common_elements(bounding_box_overlaps)
 
     ride_groups = [[rides[i] for i in group_of_overlapping_rides] for group_of_overlapping_rides in groups_of_overlapping_rides]
