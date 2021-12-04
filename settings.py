@@ -7,5 +7,6 @@ params = {
     "output_format": 'image',  # ['bytes', 'image']
     "subplots_in_separate_files": True,
     "alpha": 0.5,
-    "zoom": 12,
+    "resolution": 12,
+    "linewidth": 0.3,
 }

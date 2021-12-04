@@ -1,19 +1,22 @@
-import json
 import os
 import polyline
 import base64
+import logging
 
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
+import matplotlib
+matplotlib.use('Agg')
 
-from math import floor
-from io import BytesIO
 from cartopy.io.img_tiles import GoogleTiles
+from io import BytesIO
+import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
 
-from constants import RESULTS_FOLDER
-from strava_connection import get_rides_from_strava
-from group_overlapping import group_overlapping
+from .group_overlapping import group_overlapping
+from .strava_connection import get_rides_from_strava
+from .constants import RESULTS_FOLDER
+
+logger = logging.getLogger(__name__)
 
 
 def get_bounding_box(coordinates, margin):
@@ -53,11 +56,8 @@ def parse_rides(rides, params):
 
         if ride['map']['summary_polyline']:  # Not all rides have a polyline
             coordinates = polyline.decode(ride['map']['summary_polyline'])
-        else:
-            continue
-
-        bounding_box = get_bounding_box(coordinates, params['margin'])
-        rides_parsed.append({**bounding_box, "coordinates": coordinates})
+            bounding_box = get_bounding_box(coordinates, params['margin'])
+            rides_parsed.append({**bounding_box, "coordinates": coordinates})
 
     return rides_parsed
 
@@ -98,7 +98,7 @@ def plot_rides(ride_clusters, params):
     images_base64 = []
 
     for i, ride_cluster in enumerate(ride_clusters):
-        print(f"Printing cluster {i+1}/{len(ride_clusters)}, containing {len(ride_cluster)} activities")
+        logger.debug(f"Printing cluster {i+1}/{len(ride_clusters)}, containing {len(ride_cluster)} activities")
         ride_cluster_bounding_box = ride_cluster_bounding_boxes[i]
 
         if not params['subplots_in_separate_files']:
@@ -109,7 +109,8 @@ def plot_rides(ride_clusters, params):
             map_ax = plot_cluster(ax, ride_cluster_bounding_box, ride_cluster, params)
 
             if params['output_format'] == 'bytes':
-                images_base64.append(plot_to_bytes(plt, width=widths[i], height=heights[i]))
+                images_base64.append(plot_to_bytes(
+                    plt, resolution=params['resolution'], width=widths[i], height=heights[i]))
             else:
                 output_path = os.path.join(RESULTS_FOLDER, f'output{i}.png')
 
@@ -127,7 +128,7 @@ def plot_rides(ride_clusters, params):
     else:
         plt.subplots_adjust(left=0.03, bottom=0.05, right=0.97, top=0.95, wspace=0.1, hspace=0.1)
         if params['output_format'] == 'bytes':
-            return [plot_to_bytes(plt)]
+            return [plot_to_bytes(plt, resolution=params['resolution'])]
         elif params['output_format'] == "image":
             output_path = os.path.join(RESULTS_FOLDER, 'output.png')
 
@@ -161,8 +162,8 @@ def plot_cluster(ax, ride_cluster_bounding_box, ride_cluster, params):
 
     ax.set_extent(bounding_box, crs=ccrs.PlateCarree())
 
-    print(f"Adding background image from Google with zoom level {params['zoom']}")
-    ax.add_image(tiler, params['zoom'])
+    logger.debug(f"Adding background image from Google with resolution level {params['resolution']}")
+    ax.add_image(tiler, params['resolution'])
 
     for ride in ride_cluster:
         ride_longitudes = [coordinate[1] for coordinate in ride["coordinates"]]
@@ -173,17 +174,19 @@ def plot_cluster(ax, ride_cluster_bounding_box, ride_cluster, params):
             ride_latitudes,
             'r-',
             alpha=params['alpha'],
-            linewidth=0.2,
+            linewidth=params['linewidth'],
             transform=ccrs.PlateCarree()
         )
 
     return ax
 
 
-def plot_to_bytes(plt, width=None, height=None):
+def plot_to_bytes(plt, resolution, width=None, height=None):
+
+    scale_factor = resolution*(resolution - 4)/12
 
     if width and height:
-        plt.gcf().set_size_inches(2*width, 2*height)
+        plt.gcf().set_size_inches(width*scale_factor, height*scale_factor)
 
     plt.gca().set_axis_off()
     plt.gca().xaxis.set_major_locator(plt.NullLocator())
@@ -208,7 +211,7 @@ def strava_plotter(authorisation_code, params):
     rides = parse_rides(rides_raw, params)
     ride_clusters = cluster_rides(rides, params)
 
-    print(f"Plotting {len(rides)} rides in {len(ride_clusters)} clusters")
+    logger.debug(f"Plotting {len(rides)} rides in {len(ride_clusters)} clusters")
     plot_rides(ride_clusters, params)
 
 

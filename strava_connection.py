@@ -1,16 +1,22 @@
 import os
 import requests
 import webbrowser
-import json
+import logging
 
 from dotenv import load_dotenv
 from urllib.error import HTTPError
 
 load_dotenv('.env')
 
+logger = logging.getLogger(__name__)
+
+
 
 def authorise_app():
     """
+    This function is used to obtain the authorisation code for making requests to Strava outside the context of a webserver
+    It requires CLIENT_ID to be set as an environment variable
+
     To obtain the AUTH_CODE:
     - Go to this URL in a browser: https://www.strava.com/oauth/authorize?client_id=<CLIENT_ID>&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=activity:read
     - Authorise the app in the browser
@@ -48,10 +54,10 @@ def get_strava_access_token(AUTHORISATION_CODE=None):
     response = requests.post("https://www.strava.com/oauth/token", data=data)
 
     if response.status_code == 200:
-        print(f"Successfully obtained the access token for {response.json()['athlete']['firstname']} {response.json()['athlete']['lastname']}")
+        logger.info(f"Successfully obtained the access token for {response.json()['athlete']['firstname']} {response.json()['athlete']['lastname']}")
         return response.json()['access_token'], response.json()['athlete']['id']
     else:
-        print(f"Error obtaining access token: {response.json()}")
+        logger.info(f"Error obtaining access token: {response.json()}")
         raise HTTPError("https://www.strava.com/oauth/token", response.status_code, response.json(), None, None)
 
 
@@ -69,7 +75,7 @@ def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
     page = 1
     all_rides = []
     for page in range(1, 100):  # Loop through all pages (> 10000 activities seems unlikely..)
-        print(f'Saving page {page} for athlete {ATHLETE_ID}')
+        logger.debug(f'Saving page {page} for athlete {ATHLETE_ID}')
         data = {
             "per_page": 100,
             "page": page
@@ -78,7 +84,7 @@ def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
         response = requests.get(url, headers=headers, data=data)
 
         if response.status_code != 200:
-            print(f"Error : {response.json()}")
+            logger.warning(f"Error : {response.json()}")
             raise HTTPError(url=url, code=response.status_code, msg=f"Error: {response.json()}", hdrs=headers, fp=None)
 
         rides_on_page = response.json()
@@ -90,6 +96,6 @@ def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
 
     all_rides = [ride for ride in all_rides if type(ride) is not str]
 
-    print(f"Obtained {len(all_rides)} rides for athlete {ATHLETE_ID}")
+    logger.info(f"Obtained {len(all_rides)} rides for athlete {ATHLETE_ID}")
 
     return all_rides
