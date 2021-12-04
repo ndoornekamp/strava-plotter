@@ -12,9 +12,9 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 
-from .group_overlapping import group_overlapping
-from .strava_connection import get_rides_from_strava
-from .constants import RESULTS_FOLDER
+from group_overlapping import group_overlapping
+from strava_connection import get_rides_from_strava
+from constants import RESULTS_FOLDER
 
 logger = logging.getLogger(__name__)
 
