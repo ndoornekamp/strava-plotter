@@ -11,7 +11,6 @@ load_dotenv('.env')
 logger = logging.getLogger(__name__)
 
 
-
 def authorise_app():
     """
     This function is used to obtain the authorisation code for making requests to Strava outside the context of a webserver
@@ -69,33 +68,26 @@ def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
     if not TOKEN:
         TOKEN, ATHLETE_ID = get_strava_access_token(AUTHORISATION_CODE=authorisation_code)
 
-    url = f"https://www.strava.com/api/v3/athletes/{ATHLETE_ID}/activities"
     headers = {"Authorization": f"Bearer {TOKEN}"}
 
     page = 1
     all_rides = []
     for page in range(1, 100):  # Loop through all pages (> 10000 activities seems unlikely..)
         logger.debug(f'Saving page {page} for athlete {ATHLETE_ID}')
-        data = {
-            "per_page": 100,
-            "page": page
-        }
+        url = f"https://www.strava.com/api/v3/athlete/activities?per_page=100&page={page}"
 
-        response = requests.get(url, headers=headers, data=data)
+        logger.debug(f"Sending request to {url}...")
+        response = requests.get(url, headers=headers)
 
         if response.status_code != 200:
-            logger.warning(f"Error : {response.json()}")
-            raise HTTPError(url=url, code=response.status_code, msg=f"Error: {response.json()}", hdrs=headers, fp=None)
+            logger.warning(f"Error : {response.text}")
+            raise HTTPError(url=url, code=response.status_code, msg=f"Error: {response.text}", hdrs=headers, fp=None)
 
         rides_on_page = response.json()
 
-        if rides_on_page == []:  # Break once we've requested all rides (i.e. we receive empty pages back)
-            break
+        if not rides_on_page:  # Break once we've requested all rides (i.e. we receive empty pages back)
+            all_rides = [ride for ride in all_rides if type(ride) is not str]
+            logger.debug(f"Obtained {len(all_rides)} rides for athlete {ATHLETE_ID}")
+            return all_rides
 
         all_rides += response.json()
-
-    all_rides = [ride for ride in all_rides if type(ride) is not str]
-
-    logger.info(f"Obtained {len(all_rides)} rides for athlete {ATHLETE_ID}")
-
-    return all_rides
