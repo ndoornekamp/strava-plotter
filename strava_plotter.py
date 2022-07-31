@@ -65,8 +65,6 @@ def parse_rides(rides, params):
 def cluster_rides(rides, params):
     if params['clustered']:
         ride_clusters = group_overlapping(rides)
-        if params['first_cluster_only']:
-            ride_clusters = [ride_clusters[0]]
     else:
         ride_clusters = [rides]
 
@@ -92,59 +90,32 @@ def plot_rides(ride_clusters, params):
     widths = [bounding_box['width'] for bounding_box in ride_cluster_bounding_boxes]
     heights = [bounding_box['height'] for bounding_box in ride_cluster_bounding_boxes]
 
-    nof_rows = 1
-    nof_columns = len(ride_clusters)
-    gs = gridspec.GridSpec(nof_rows, nof_columns, width_ratios=widths)
     images_base64 = []
-
     for i, ride_cluster in enumerate(ride_clusters):
         logger.debug(f"Printing cluster {i+1}/{len(ride_clusters)}, containing {len(ride_cluster)} activities")
-        ride_cluster_bounding_box = ride_cluster_bounding_boxes[i]
 
-        if not params['subplots_in_separate_files']:
-            ax = plt.subplot(gs[i])
-            map_ax = plot_cluster(ax, ride_cluster_bounding_box, ride_cluster, params)
-        else:
-            ax = plt.subplot(gridspec.GridSpec(1, 1, width_ratios=[widths[i]])[0])
-            map_ax = plot_cluster(ax, ride_cluster_bounding_box, ride_cluster, params)
+        plot_cluster(ride_cluster_bounding_boxes[i], ride_cluster, params)
 
-            if params['output_format'] == 'bytes':
-                images_base64.append(plot_to_bytes(
-                    plt, resolution=params['resolution'], width=widths[i], height=heights[i]))
-            else:
-                output_path = os.path.join(RESULTS_FOLDER, f'output{i}.png')
-
-                if not os.path.isdir(RESULTS_FOLDER):
-                    os.mkdir(RESULTS_FOLDER)
-
-                plt.savefig(output_path, dpi=600)
-
-    if params['subplots_in_separate_files']:
         if params['output_format'] == 'bytes':
-            return images_base64
-        else:
-            raise NotImplementedError(
-                f"Saving subplots in separate files with output format {params['output_format']} is not yet implemented")
-    else:
-        plt.subplots_adjust(left=0.03, bottom=0.05, right=0.97, top=0.95, wspace=0.1, hspace=0.1)
-        if params['output_format'] == 'bytes':
-            return [plot_to_bytes(plt, resolution=params['resolution'])]
-        elif params['output_format'] == "image":
-            output_path = os.path.join(RESULTS_FOLDER, 'output.png')
+            images_base64.append(
+                plot_to_bytes(plt, resolution=params['resolution'], width=widths[i], height=heights[i])
+            )
+        elif params['output_format'] == 'image':
+            output_path = os.path.join(RESULTS_FOLDER, f'output{i}.png')
 
             if not os.path.isdir(RESULTS_FOLDER):
                 os.mkdir(RESULTS_FOLDER)
 
             plt.savefig(output_path, dpi=600)
-            plt.show()
         else:
             raise NotImplementedError(f"Unknown {params['output_format']}: expected either 'bytes' or 'image'")
 
+    return images_base64
 
-def plot_cluster(ax, ride_cluster_bounding_box, ride_cluster, params):
+
+def plot_cluster(ride_cluster_bounding_box, ride_cluster, params):
     """
-    Given a list of rides and its bounding box, plots this cluster the matplotlib object <ax>,
-    with satellite imagery as background
+    Given a list of rides and its bounding box, plots this cluster with satellite imagery as background
     """
 
     tiler = GoogleTiles(style='satellite')
@@ -162,7 +133,7 @@ def plot_cluster(ax, ride_cluster_bounding_box, ride_cluster, params):
 
     ax.set_extent(bounding_box, crs=ccrs.PlateCarree())
 
-    logger.debug(f"Adding background image from Google with resolution level {params['resolution']}")
+    logger.debug(f"Adding background image from Google with zoom level {params['resolution']}")
     ax.add_image(tiler, params['resolution'])
 
     for ride in ride_cluster:
@@ -177,8 +148,6 @@ def plot_cluster(ax, ride_cluster_bounding_box, ride_cluster, params):
             linewidth=params['linewidth'],
             transform=ccrs.PlateCarree()
         )
-
-    return ax
 
 
 def plot_to_bytes(plt, resolution, width=None, height=None):
