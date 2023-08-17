@@ -61,9 +61,6 @@ def get_strava_access_token(AUTHORISATION_CODE=None):
 
 
 def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
-    """
-    Get all activities from Strava, save them as a local JSON
-    """
 
     if not TOKEN:
         TOKEN, ATHLETE_ID = get_strava_access_token(AUTHORISATION_CODE=authorisation_code)
@@ -80,7 +77,7 @@ def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
         response = requests.get(url, headers=headers)
 
         if response.status_code != 200:
-            logger.warning(f"Error : {response.text}")
+            logger.error(f"Error : {response.text}")
             raise HTTPError(url=url, code=response.status_code, msg=f"Error: {response.text}", hdrs=headers, fp=None)
 
         rides_on_page = response.json()
@@ -90,4 +87,4 @@ def get_rides_from_strava(TOKEN=None, authorisation_code=None, ATHLETE_ID=None):
             logger.debug(f"Obtained {len(all_rides)} rides for athlete {ATHLETE_ID}")
             return all_rides
 
-        all_rides += response.json()
+        all_rides += rides_on_page

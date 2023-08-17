@@ -8,7 +8,6 @@ matplotlib.use('Agg')
 
 from cartopy.io.img_tiles import GoogleTiles
 from io import BytesIO
-import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 
