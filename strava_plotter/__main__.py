@@ -12,9 +12,9 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 
-from group_overlapping import group_overlapping
-from strava_connection import get_rides_from_strava
-from constants import RESULTS_FOLDER
+from strava_plotter.group_overlapping import group_overlapping
+from strava_plotter.strava_connection import get_rides_from_strava
+from strava_plotter.constants import RESULTS_FOLDER
 
 logger = logging.getLogger(__name__)
 
@@ -172,7 +172,7 @@ def plot_to_bytes(plt, resolution, width=None, height=None):
 def strava_plotter(authorisation_code, params):
 
     if not params:
-        from settings import params
+        from strava_plotter.settings import params
 
     # Set working directory to script directory
     os.chdir(os.path.dirname(__file__))
@@ -185,4 +185,5 @@ def strava_plotter(authorisation_code, params):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
     strava_plotter(authorisation_code=None, params=None)
