@@ -97,7 +97,7 @@ def plot_rides(ride_clusters, params):
 
         if params['output_format'] == 'bytes':
             images_base64.append(
-                plot_to_bytes(plt, resolution=params['resolution'], width=widths[i], height=heights[i])
+                plot_to_bytes(resolution=params['resolution'], width=widths[i], height=heights[i])
             )
         elif params['output_format'] == 'image':
             output_path = os.path.join(RESULTS_FOLDER, f'output{i}.png')
@@ -149,7 +149,7 @@ def plot_cluster(ride_cluster_bounding_box, ride_cluster, params):
         )
 
 
-def plot_to_bytes(plt, resolution, width=None, height=None):
+def plot_to_bytes(resolution, width=None, height=None):
 
     scale_factor = resolution*(resolution - 4)/12
 
